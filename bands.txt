@@ -1,0 +1,29 @@
+=== .//IMG_0401_10.tif ===
+Band Name                       : Red edge-740
+
+=== .//IMG_0401_1.tif ===
+Band Name                       : Blue(-475)
+
+=== .//IMG_0401_2.tif ===
+Band Name                       : Green(-560)
+
+=== .//IMG_0401_3.tif ===
+Band Name                       : Red(-668)
+
+=== .//IMG_0401_4.tif ===
+Band Name                       : NIR(-842)
+
+=== .//IMG_0401_5.tif ===
+Band Name                       : Red Edge(-717)
+
+=== .//IMG_0401_6.tif ===
+Band Name                       : Blue-444
+
+=== .//IMG_0401_7.tif ===
+Band Name                       : Green-531
+
+=== .//IMG_0401_8.tif ===
+Band Name                       : Red-650
+
+=== .//IMG_0401_9.tif ===
+Band Name                       : Red edge-705
