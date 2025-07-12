@@ -6,24 +6,45 @@ rgb = util.get_rgb_from_aligned(aligned_capture, img_type="reflectance", rgb_ban
 bands_da = util.get_bands_dataarrays(aligned_capture)  # Indici delle bande da usare
 # Calcolo di tre indici vegetazionali con Spyndex
 indices = spyndex.computeIndex(
-    index=["NDVI", "GNDVI", "SAVI"],  # indici da calcolare
+    index=["TSAVI", "SAVI", "MCARI", "GEMI", "SR", "NDVI"],  # indici da calcolare
     params={
         "N": bands_da["N"],           # banda NIR
         "R": bands_da["R"],           # banda rossa
-        "G": bands_da["G"],           # banda verde
-        "L": 0.5                      # parametro per il SAVI
+        "RE1": bands_da["RE1"],           # banda rossa
+        "G": bands_da["G"],          # banda verde
+        "L": 0.5,                      # parametro per il SAVI
+        "sla": 0.5,
+        "slb": 0.0,                   # parametri per il TSAVI
     }
 )
 
 # Estrae l'indice NDVI dal risultato
-calculated_index = indices.sel(index="NDVI")
+#print(indices)
+indici_da_visualizzare = ["TSAVI", "SAVI", "MCARI", "GEMI", "SR", "NDVI"]
 
-util.plot_index_overlay(
-    calculated_index,
-    rgb,
-    threshold=0.7,
-    cmap="jet",
-    out_mask_path="NDVI.png",
-    out_overlay_path="overlay_NDVI.png",
-    title="NDVI Overlay su RGB"
-)
+for indice_nome in indici_da_visualizzare:
+    try:
+        # Seleziona l'indice calcolato
+        calculated_index = indices.sel(index=indice_nome)
+
+        # Costruisci i nomi dei file di output
+        mask_path = f"{indice_nome}.png"
+        overlay_path = f"overlay_{indice_nome}.png"
+
+        # Titolo dinamico
+        titolo = f"{indice_nome} overlay su RGB"
+
+        # Visualizza e salva overlay
+        util.plot_index_overlay(
+            calculated_index,
+            rgb,
+            threshold=0.9,
+            cmap="jet",
+            out_mask_path=mask_path,
+            out_overlay_path=overlay_path,
+            title=titolo
+        )
+        print(f"[✓] {indice_nome} processato correttamente.")
+    
+    except Exception as e:
+        print(f"[!] Errore con indice {indice_nome}: {e}")

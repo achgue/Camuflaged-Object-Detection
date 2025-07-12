@@ -23,13 +23,16 @@ def get_aligned_images(image_dir):
         raise ValueError(f"No images found in {image_dir} matching pattern 'IMG_0401_*.tif'")
     cap = capture.Capture.from_filelist(imageNames)
     if cap.dls_present():
+        print("DLS irradiance present, using reflectance images.")
         img_type = 'reflectance'
     else:
+        print("No DLS irradiance, using radiance images.")
         img_type = 'radiance'
     warp_mode = cv2.MOTION_HOMOGRAPHY
     warp_matrices = cap.get_warp_matrices()
     cropped_dimensions, edges = imageutils.find_crop_bounds(cap, warp_matrices)
     im_aligned = imageutils.aligned_capture(cap, warp_matrices, warp_mode, cropped_dimensions, 0, img_type=img_type)
+        
     return im_aligned
 
 
@@ -58,16 +61,15 @@ def get_rgb_from_aligned(im_aligned, img_type, rgb_band_indices=[2,1,0]):
     return rgb
 
 
-def get_bands_dataarrays(im_aligned, crs="EPSG:32633"):
+def get_bands_dataarrays(im_aligned):
     """
     Crea un dizionario di DataArray xarray per ogni banda presente nell'immagine allineata.
 
     Args:
         im_aligned (np.ndarray): Array numpy 3D (H, W, Bands) delle immagini allineate.
-        crs (str, optional): Codice EPSG del sistema di riferimento spaziale. Default: "EPSG:32633".
 
     Returns:
-        dict: Dizionario {nome_banda: xr.DataArray} con CRS associato per ogni banda trovata.
+        dict: Dizionario {nome_banda: xr.DataArray} per ogni banda trovata.
     """
 
     band_indices = {
@@ -75,21 +77,22 @@ def get_bands_dataarrays(im_aligned, crs="EPSG:32633"):
         "G": 1,
         "R": 2,
         "N": 3,
-        "RE": 4,
-        "Y": 5,
-        "R2": 6
-        # Aggiungi qui altre bande se necessario
+        "Red-717": 4,
+        "A": 5,
+        "G1": 6,
+        "Red-650": 7,
+        "RE1": 8,
+        "RE2": 9
     }
+
     bands_da = {}
     for band_name, idx in band_indices.items():
         if idx < im_aligned.shape[2]:
             da = xr.DataArray(
-                im_aligned[:, :, idx],
-                dims=["y", "x"],
-                name=band_name
+                im_aligned[:, :, idx]
             )
-            da.rio.write_crs(crs, inplace=True)
             bands_da[band_name] = da
+
     return bands_da
 
 
@@ -109,14 +112,12 @@ def plot_index_overlay(calculated_index, rgb, threshold=0.7, cmap="jet", out_mas
     Returns:
         None. Salva le immagini su disco e mostra la figura.
     """
-    import numpy as np
-    import matplotlib.pyplot as plt
     # Salva la maschera su disco prima di applicarla alla heatmap
     plt.imsave(out_mask_path, calculated_index, cmap=cmap)
     # Normalizza indice da [-1, 1] a [0, 1]
     arrn = np.clip((calculated_index + 1)/2, 0, 1)
     # Applica soglia per creare una maschera booleana
-    mask = arrn > threshold
+    mask = arrn < threshold
     # Crea una mappa RGBA (4 canali) con la colormap scelta
     heatmap = plt.get_cmap(cmap)(arrn)
     # Applica trasparenza: sotto soglia invisibile, sopra soglia semitrasparente

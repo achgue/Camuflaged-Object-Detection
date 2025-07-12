@@ -26,4 +26,3 @@ rgb  = (rgb * 255).astype(np.uint8)
 # save
 plt.imsave("gndvi_rgb.png", rgb)
 print("Saved GNDVI → gndvi_rgb.png")
-

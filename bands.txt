@@ -1,6 +1,3 @@
-=== .//IMG_0401_10.tif ===
-Band Name                       : Red edge-740
-
 === .//IMG_0401_1.tif ===
 Band Name                       : Blue(-475)
 
@@ -27,3 +24,6 @@ Band Name                       : Red-650
 
 === .//IMG_0401_9.tif ===
 Band Name                       : Red edge-705
+
+=== .//IMG_0401_10.tif ===
+Band Name                       : Red edge-740
