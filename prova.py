@@ -12,33 +12,15 @@ def compute_ferric_index():
     # Calcolo dell'indice ferrico come rapporto Red/Green
     ferric_index = red / green
     
-    # Normalization and enhancement operations
-    # 1. Handle infinite and NaN values
-    ferric_index = np.where(np.isfinite(ferric_index), ferric_index, np.nan)
-    
-    # 2. Percentile-based normalization (robust to outliers)
-    p2, p98 = np.nanpercentile(ferric_index, [2, 98])
-    ferric_index_norm = np.clip((ferric_index - p2) / (p98 - p2), 0, 1)
-    
-    # 3. Apply histogram equalization for better contrast
-    ferric_index_enhanced = np.zeros_like(ferric_index_norm)
-    valid_mask = np.isfinite(ferric_index_norm)
-    if np.any(valid_mask):
-        hist, bins = np.histogram(ferric_index_norm[valid_mask], bins=256, range=(0, 1))
-        cdf = hist.cumsum()
-        cdf_normalized = cdf / cdf[-1]
-        ferric_index_enhanced[valid_mask] = np.interp(ferric_index_norm[valid_mask], 
-                                                      bins[:-1], cdf_normalized)
-    
     # Visualizza e salva l'indice ferrico
     try:
         mask_path = "ferric_index.png"
         overlay_path = "overlay_ferric_index.png"
         titolo = "Ferric Index (Red/Green) overlay su RGB"
         
-        # Visualizza e salva overlay using enhanced index
+        # Visualizza e salva overlay
         util.plot_index_overlay(
-            ferric_index_enhanced,
+            ferric_index,
             rgb,
             threshold=0.7,
             cmap="jet",
@@ -51,32 +33,14 @@ def compute_ferric_index():
     except Exception as e:
         print(f"[!] Errore con Ferric Index: {e}")
     
-    return ferric_index_enhanced
-
+    return ferric_index
+	
 def compute_iron_oxide_index():
-    red = bands_da["R"]
+    red = bands_da["Red-650"]
     blue = bands_da["B"]
     
-    # Calcolo dell'indice ferrico come rapporto Red/Blue
+    # Calcolo dell'indice ferrico come rapporto Red/Green
     iron_oxide_ratio = red / blue
-    
-    # Normalization and enhancement operations
-    # 1. Handle infinite and NaN values
-    iron_oxide_ratio = np.where(np.isfinite(iron_oxide_ratio), iron_oxide_ratio, np.nan)
-    
-    # 2. Percentile-based normalization (robust to outliers)
-    p2, p98 = np.nanpercentile(iron_oxide_ratio, [2, 98])
-    iron_oxide_norm = np.clip((iron_oxide_ratio - p2) / (p98 - p2), 0, 1)
-    
-    # 3. Apply histogram equalization for better contrast
-    iron_oxide_enhanced = np.zeros_like(iron_oxide_norm)
-    valid_mask = np.isfinite(iron_oxide_norm)
-    if np.any(valid_mask):
-        hist, bins = np.histogram(iron_oxide_norm[valid_mask], bins=256, range=(0, 1))
-        cdf = hist.cumsum()
-        cdf_normalized = cdf / cdf[-1]
-        iron_oxide_enhanced[valid_mask] = np.interp(iron_oxide_norm[valid_mask], 
-                                                    bins[:-1], cdf_normalized)
     
     # Visualizza e salva l'indice ferrico
     try:
@@ -84,9 +48,9 @@ def compute_iron_oxide_index():
         overlay_path = "overlay_iron_oxide_index.png"
         titolo = "Iron oxide index (Red/Blue) overlay su RGB"
         
-        # Visualizza e salva overlay using enhanced index
+        # Visualizza e salva overlay
         util.plot_index_overlay(
-            iron_oxide_enhanced,
+            iron_oxide_ratio,
             rgb,
             threshold=0.7,
             cmap="jet",
@@ -94,14 +58,15 @@ def compute_iron_oxide_index():
             out_overlay_path=overlay_path,
             title=titolo
         )
-        print(f"[✓] Iron Oxide Index processato correttamente.")
+        print(f"[✓] Ferric Index processato correttamente.")
         
     except Exception as e:
-        print(f"[!] Errore con Iron Oxide Index: {e}")
+        print(f"[!] Errore con Ferric Index: {e}")
     
-    return iron_oxide_enhanced
-
+    return iron_oxide_ratio	
+    
 compute_ferric_index()  # Calcola e visualizza l'indice ferrico
+
 compute_iron_oxide_index()  # Calcola e visualizza l'indice ferrico
 
 
