@@ -4,9 +4,21 @@ import util
 aligned_capture = util.get_aligned_images("./im/")  # Percorso delle immagini
 rgb = util.get_rgb_from_aligned(aligned_capture, img_type="reflectance", rgb_band_indices=[2, 1, 0])
 bands_da = util.get_bands_dataarrays(aligned_capture)  # Indici delle bande da usare
+
+custom_idx = {
+    "short_name": "FII",
+    "long_name": "Ferric Iron Index",
+    "formula": "R / G",  # example
+    "bands": ("R", "G"),  # use Spyndex band names
+    "application_domain": "metal",
+    "date_of_addition": "2025-07-14",
+}
+
+
+
 # Calcolo di tre indici vegetazionali con Spyndex
 indices = spyndex.computeIndex(
-    index=["TSAVI", "SAVI", "MCARI", "GEMI", "SR", "NDVI"],  # indici da calcolare
+    index=["TSAVI", "SAVI", "MCARI", "GEMI", "SR", "NDVI", "FII"],  # indici da calcolare
     params={
         "N": bands_da["N"],           # banda NIR
         "R": bands_da["R"],           # banda rossa
@@ -20,7 +32,7 @@ indices = spyndex.computeIndex(
 
 # Estrae l'indice NDVI dal risultato
 #print(indices)
-indici_da_visualizzare = ["TSAVI", "SAVI", "MCARI", "GEMI", "SR", "NDVI"]
+indici_da_visualizzare = ["TSAVI", "SAVI", "MCARI", "GEMI", "SR", "NDVI", "FII"]
 
 for indice_nome in indici_da_visualizzare:
     try:
