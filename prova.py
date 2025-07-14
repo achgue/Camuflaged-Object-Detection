@@ -6,7 +6,7 @@ rgb = util.get_rgb_from_aligned(aligned_capture, img_type="reflectance", rgb_ban
 bands_da = util.get_bands_dataarrays(aligned_capture)  # Indici delle bande da usare
 
 def compute_ferric_index():
-    red = bands_da["Red-650"]
+    red = bands_da["R"]
     green = bands_da["G"]
     
     # Calcolo dell'indice ferrico come rapporto Red/Green
@@ -35,8 +35,8 @@ def compute_ferric_index():
     
     return ferric_index
 	
-def compute_ferric_index():
-    red = bands_da["Red-650"]
+def compute_iron_oxide_index():
+    red = bands_da["R"]
     blue = bands_da["B"]
     
     # Calcolo dell'indice ferrico come rapporto Red/Green
@@ -65,7 +65,11 @@ def compute_ferric_index():
     
     return iron_oxide_ratio	
     
-   
+compute_ferric_index()  # Calcola e visualizza l'indice ferrico
+
+compute_iron_oxide_index()  # Calcola e visualizza l'indice ferrico
+
+
 # Calcolo di tre indici vegetazionali con Spyndex
 indices = spyndex.computeIndex(
     index=["TSAVI", "SAVI", "MCARI", "GEMI", "SR", "NDVI"],  # indici da calcolare
