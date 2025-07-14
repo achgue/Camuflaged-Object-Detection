@@ -15,6 +15,7 @@ custom_idx = {
 }
 
 
+spyndex.indices.FII = spyndex.axioms.SpectralIndex(custom_idx)
 
 # Calcolo di tre indici vegetazionali con Spyndex
 indices = spyndex.computeIndex(
