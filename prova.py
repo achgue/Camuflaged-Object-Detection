@@ -5,7 +5,7 @@ aligned_capture = util.get_aligned_images("./im/")  # Percorso delle immagini
 rgb = util.get_rgb_from_aligned(aligned_capture, img_type="reflectance", rgb_band_indices=[2, 1, 0])
 bands_da = util.get_bands_dataarrays(aligned_capture)  # Indici delle bande da usare
 
-def compute_ferric_indices():
+def compute_ferric_index():
     red = bands_da["Red-650"]
     green = bands_da["G"]
     
@@ -22,7 +22,7 @@ def compute_ferric_indices():
         util.plot_index_overlay(
             ferric_index,
             rgb,
-            threshold=0.9,
+            threshold=0.7,
             cmap="jet",
             out_mask_path=mask_path,
             out_overlay_path=overlay_path,
@@ -35,7 +35,37 @@ def compute_ferric_indices():
     
     return ferric_index
 	
-
+def compute_ferric_index():
+    red = bands_da["Red-650"]
+    blue = bands_da["B"]
+    
+    # Calcolo dell'indice ferrico come rapporto Red/Green
+    iron_oxide_ratio = red / blue
+    
+    # Visualizza e salva l'indice ferrico
+    try:
+        mask_path = "iron_oxide_index.png"
+        overlay_path = "overlay_iron_oxide_index.png"
+        titolo = "Iron oxide index (Red/Blue) overlay su RGB"
+        
+        # Visualizza e salva overlay
+        util.plot_index_overlay(
+            iron_oxide_ratio,
+            rgb,
+            threshold=0.7,
+            cmap="jet",
+            out_mask_path=mask_path,
+            out_overlay_path=overlay_path,
+            title=titolo
+        )
+        print(f"[✓] Ferric Index processato correttamente.")
+        
+    except Exception as e:
+        print(f"[!] Errore con Ferric Index: {e}")
+    
+    return iron_oxide_ratio	
+    
+   
 # Calcolo di tre indici vegetazionali con Spyndex
 indices = spyndex.computeIndex(
     index=["TSAVI", "SAVI", "MCARI", "GEMI", "SR", "NDVI"],  # indici da calcolare
