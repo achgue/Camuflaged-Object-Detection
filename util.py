@@ -18,9 +18,9 @@ def get_aligned_images(image_dir):
     Returns:
         np.ndarray: Array numpy 3D (H, W, Bands) delle immagini allineate.
     """
-    imageNames = glob.glob(os.path.join(image_dir, 'IMG_0401_*.tif'))
+    imageNames = glob.glob(os.path.join(image_dir, 'IMG_0600_*.tif'))
     if len(imageNames) == 0:
-        raise ValueError(f"No images found in {image_dir} matching pattern 'IMG_0401_*.tif'")
+        raise ValueError(f"No images found in {image_dir} matching pattern 'IMG_0600_*.tif'")
     cap = capture.Capture.from_filelist(imageNames)
     if cap.dls_present():
         print("DLS irradiance present, using reflectance images.")
@@ -73,12 +73,12 @@ def get_bands_dataarrays(im_aligned):
     """
 
     band_indices = {
-        "B": 0,
-        "G": 1,
-        "R": 2,
-        "N": 3,
+        "Blue-444": 0,
+        "Green": 1,
+        "Red": 2,
+        "NIR": 3,
         "Red-717": 4,
-        "A": 5,
+        "Aerosol": 5,
         "G1": 6,
         "Red-650": 7,
         "RE1": 8,
@@ -96,7 +96,7 @@ def get_bands_dataarrays(im_aligned):
     return bands_da
 
 
-def plot_index_overlay(calculated_index, rgb, threshold=0.7, cmap="jet", out_mask_path="SAVI.png", out_overlay_path="overlay_savi.png", title="SAVI Overlay su RGB"):
+def plot_index_overlay(calculated_index, rgb, out_mask_path, threshold=0.7, cmap="jet", out_overlay_path="overlay_savi.png", title="SAVI Overlay su RGB"):
     """
     Crea e salva una sovrapposizione (overlay) di una heatmap di un indice spettrale su un'immagine RGB.
 
@@ -113,11 +113,14 @@ def plot_index_overlay(calculated_index, rgb, threshold=0.7, cmap="jet", out_mas
         None. Salva le immagini su disco e mostra la figura.
     """
     # Salva la maschera su disco prima di applicarla alla heatmap
-    plt.imsave(out_mask_path, calculated_index, cmap=cmap)
-    # Normalizza indice da [-1, 1] a [0, 1]
-    arrn = np.clip((calculated_index + 1)/2, 0, 1)
+    plt.imsave("out_masks/" + out_mask_path, calculated_index, cmap=cmap)
+    # Normalizza indice a [0, 1]
+    vmin = np.nanmin(calculated_index)
+    vmax = np.nanmax(calculated_index)
+    arrn = np.clip((calculated_index - vmin) / (vmax - vmin), 0, 1)
+    #threshold = np.min(calculated_index) + abs(np.min(calculated_index) - np.max(calculated_index)) * 0.655
     # Applica soglia per creare una maschera booleana
-    mask = arrn < threshold
+    mask = (arrn > threshold) #& (arrn < 0.5)
     # Crea una mappa RGBA (4 canali) con la colormap scelta
     heatmap = plt.get_cmap(cmap)(arrn)
     # Applica trasparenza: sotto soglia invisibile, sopra soglia semitrasparente
@@ -128,5 +131,5 @@ def plot_index_overlay(calculated_index, rgb, threshold=0.7, cmap="jet", out_mas
     plt.imshow(heatmap)
     plt.axis("off")
     plt.title(title)
-    plt.savefig(out_overlay_path, bbox_inches="tight")
+    plt.savefig("out_overlay/" + out_overlay_path, bbox_inches="tight")
     plt.show()

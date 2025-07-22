@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Directory containing .tif images (change as needed)
+IMAGE_DIR="./"
+
+# Loop through all .tif or .tiff files in the directory
+for file in "$IMAGE_DIR"/*.tif "$IMAGE_DIR"/*.tiff; do
+    # Check that file exists (in case of no matches)
+    [ -e "$file" ] || continue
+
+    echo "=== $file ==="
+
+    # Extract BandName and Wavelength metadata
+    exiftool -BandName -Wavelength "$file"
+
+    echo
+done
