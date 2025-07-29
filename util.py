@@ -18,9 +18,9 @@ def get_aligned_images(image_dir):
     Returns:
         np.ndarray: Array numpy 3D (H, W, Bands) delle immagini allineate.
     """
-    imageNames = glob.glob(os.path.join(image_dir, 'IMG_0600_*.tif'))
+    imageNames = glob.glob(os.path.join(image_dir, 'IMG_0422_*.tif'))
     if len(imageNames) == 0:
-        raise ValueError(f"No images found in {image_dir} matching pattern 'IMG_0600_*.tif'")
+        raise ValueError(f"No images found in {image_dir} matching pattern 'IMG_0228_*.tif'")
     cap = capture.Capture.from_filelist(imageNames)
     if cap.dls_present():
         print("DLS irradiance present, using reflectance images.")
@@ -33,7 +33,7 @@ def get_aligned_images(image_dir):
     cropped_dimensions, edges = imageutils.find_crop_bounds(cap, warp_matrices)
     im_aligned = imageutils.aligned_capture(cap, warp_matrices, warp_mode, cropped_dimensions, 0, img_type=img_type)
         
-    return im_aligned
+    return im_aligned, cap
 
 
 def get_rgb_from_aligned(im_aligned, img_type, rgb_band_indices=[2,1,0]):
@@ -61,42 +61,17 @@ def get_rgb_from_aligned(im_aligned, img_type, rgb_band_indices=[2,1,0]):
     return rgb
 
 
-def get_bands_dataarrays(im_aligned):
-    """
-    Crea un dizionario di DataArray xarray per ogni banda presente nell'immagine allineata.
-
-    Args:
-        im_aligned (np.ndarray): Array numpy 3D (H, W, Bands) delle immagini allineate.
-
-    Returns:
-        dict: Dizionario {nome_banda: xr.DataArray} per ogni banda trovata.
-    """
-
-    band_indices = {
-        "Blue-444": 0,
-        "Green": 1,
-        "Red": 2,
-        "NIR": 3,
-        "Red-717": 4,
-        "Aerosol": 5,
-        "G1": 6,
-        "Red-650": 7,
-        "RE1": 8,
-        "RE2": 9
-    }
-
+def get_bands_dataarrays(im_aligned, cap):
     bands_da = {}
-    for band_name, idx in band_indices.items():
-        if idx < im_aligned.shape[2]:
-            da = xr.DataArray(
-                im_aligned[:, :, idx]
-            )
+    for i, band_name in enumerate(cap.band_names()):
+        if i < im_aligned.shape[2]:
+            da = xr.DataArray(im_aligned[:, :, i])
             bands_da[band_name] = da
-
     return bands_da
 
 
-def plot_index_overlay(calculated_index, rgb, out_mask_path, threshold=0.7, cmap="jet", out_overlay_path="overlay_savi.png", title="SAVI Overlay su RGB"):
+def plot_index_overlay(calculated_index, rgb, out_mask_path, out_overlay_path, title, 
+                       threshold=0.7, cmap="jet", remove_outliers=True, pick_range=False, outlier_percentile=60):
     """
     Crea e salva una sovrapposizione (overlay) di una heatmap di un indice spettrale su un'immagine RGB.
 
@@ -104,27 +79,62 @@ def plot_index_overlay(calculated_index, rgb, out_mask_path, threshold=0.7, cmap
         calculated_index (np.ndarray): Array 2D dell'indice calcolato (es. NDVI, SAVI).
         rgb (np.ndarray): Immagine RGB di sfondo (H, W, 3).
         threshold (float, optional): Soglia per la maschera di trasparenza (default 0.7).
-        cmap (str, optional): Nome della colormap matplotlib da usare per la heatmap (default "magma").
-        out_mask_path (str, optional): Percorso file per salvare la maschera dell'indice (default "SAVI.png").
-        out_overlay_path (str, optional): Percorso file per salvare l'overlay risultante (default "overlay_savi.png").
-        title (str, optional): Titolo della figura (default "SAVI Overlay su RGB").
+        cmap (str, optional): Nome della colormap matplotlib da usare per la heatmap (default "jet").
+        out_mask_path (str): Percorso file per salvare la maschera dell'indice.
+        out_overlay_path (str): Percorso file per salvare l'overlay risultante.
+        title (str): Titolo della figura.
+        remove_outliers (bool, optional): Se True, rimuove gli outliers prima della normalizzazione (default True).
+        outlier_percentile (float, optional): Percentile sopra il quale considerare i valori come outliers (default 95).
 
     Returns:
         None. Salva le immagini su disco e mostra la figura.
     """
-    # Salva la maschera su disco prima di applicarla alla heatmap
-    plt.imsave("out_masks/" + out_mask_path, calculated_index, cmap=cmap)
-    # Normalizza indice a [0, 1]
-    vmin = np.nanmin(calculated_index)
-    vmax = np.nanmax(calculated_index)
-    arrn = np.clip((calculated_index - vmin) / (vmax - vmin), 0, 1)
-    #threshold = np.min(calculated_index) + abs(np.min(calculated_index) - np.max(calculated_index)) * 0.655
+    # Converti a numpy array se necessario e copia per non modificare l'originale
+    if hasattr(calculated_index, 'values'):  # pandas DataFrame o xarray DataArray
+        processed_index = calculated_index.values.copy()
+        original_data = calculated_index.values
+    else:  # già un numpy array
+        processed_index = np.array(calculated_index).copy()
+        original_data = np.array(calculated_index)
+
+    if(pick_range):
+        lower, upper = 0.1, 0.3
+        min_value = np.nanmin(processed_index)
+        mask_keep = (processed_index >= lower) & (processed_index <= upper)
+        processed_index = np.where(mask_keep, processed_index, min_value)
+        print(f"Applied value filter: keeping [{lower}, {upper}], others set to {min_value:.3f}")
+
+    if(remove_outliers):
+         # Trova il minimo dell'indice (escludendo NaN)
+        min_value = np.nanmin(processed_index)
+
+        # Calcola il percentile soglia per identificare gli outliers
+        outlier_threshold = np.nanpercentile(original_data, outlier_percentile)
+        
+        # Sostituisci gli outliers con il valore minimo usando np.where
+        processed_index = np.where(processed_index > outlier_threshold, min_value, processed_index)
+        
+        # Conta gli outliers rimossi
+        outliers_count = np.sum(original_data > outlier_threshold)
+        print(f"Removed {outliers_count} outlier pixels (>{outlier_threshold:.3f}) and set them to {min_value:.3f}")
+    
+    # Salva la maschera su disco (usando l'array processato)
+    plt.imsave("out_masks/" + out_mask_path, processed_index, cmap=cmap)
+    
+    # Normalizza indice processato a [0, 1]
+    vmin = np.nanmin(processed_index)
+    vmax = np.nanmax(processed_index)
+    arrn = np.clip((processed_index - vmin) / (vmax - vmin), 0, 1)
+    
     # Applica soglia per creare una maschera booleana
-    mask = (arrn > threshold) #& (arrn < 0.5)
+    mask = (arrn > threshold)
+    
     # Crea una mappa RGBA (4 canali) con la colormap scelta
     heatmap = plt.get_cmap(cmap)(arrn)
+    
     # Applica trasparenza: sotto soglia invisibile, sopra soglia semitrasparente
     heatmap[~mask, 3] = 0.0  # alpha = 0
+    
     # Overlay della heatmap su immagine RGB
     plt.figure(figsize=(10, 10))
     plt.imshow(rgb)
