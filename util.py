@@ -18,7 +18,7 @@ def get_aligned_images(image_dir):
     Returns:
         np.ndarray: Array numpy 3D (H, W, Bands) delle immagini allineate.
     """
-    imageNames = glob.glob(os.path.join(image_dir, 'IMG_0422_*.tif'))
+    imageNames = glob.glob(os.path.join(image_dir, 'IMG_0600_*.tif'))
     if len(imageNames) == 0:
         raise ValueError(f"No images found in {image_dir} matching pattern 'IMG_0228_*.tif'")
     cap = capture.Capture.from_filelist(imageNames)
@@ -71,7 +71,7 @@ def get_bands_dataarrays(im_aligned, cap):
 
 
 def plot_index_overlay(calculated_index, rgb, out_mask_path, out_overlay_path, title, 
-                       threshold=0.7, cmap="jet", remove_outliers=True, pick_range=False, outlier_percentile=60):
+                       threshold=0.7, cmap="jet", remove_outliers=True, pick_range=False, outlier_percentile=50):
     """
     Crea e salva una sovrapposizione (overlay) di una heatmap di un indice spettrale su un'immagine RGB.
 
@@ -143,3 +143,48 @@ def plot_index_overlay(calculated_index, rgb, out_mask_path, out_overlay_path, t
     plt.title(title)
     plt.savefig("out_overlay/" + out_overlay_path, bbox_inches="tight")
     plt.show()
+
+# Normalizza entrambi gli indici a [0,1]
+def normalize_index(idx):
+    vmin, vmax = np.nanmin(idx), np.nanmax(idx)
+    return np.clip((idx - vmin) / (vmax - vmin), 0, 1)
+
+def compute_index_difference(index1, index2, threshold=0.7, remove_outliers=False, outlier_percentile=95):
+    """
+    Calcola la differenza tra due indici spettrali normalizzati e applica una soglia.
+    
+    Args:
+        index1 (np.ndarray or xr.DataArray): Primo indice spettrale
+        index2 (np.ndarray or xr.DataArray): Secondo indice spettrale  
+        threshold (float): Soglia minima per mantenere i valori (default 0.1)
+        remove_outliers (bool): Se rimuovere gli outliers prima della normalizzazione (default True)
+        outlier_percentile (float): Percentile per identificare outliers (default 95)
+    
+    Returns:
+        np.ndarray: Differenza normalizzata e filtrata per soglia
+    """
+    # Converti a numpy se necessario
+    if hasattr(index1, 'values'):
+        idx1 = index1.values.copy()
+    else:
+        idx1 = np.array(index1).copy()
+        
+    if hasattr(index2, 'values'):
+        idx2 = index2.values.copy()
+    else:
+        idx2 = np.array(index2).copy()
+    
+    # Rimuovi outliers se richiesto
+    if remove_outliers:
+        for idx in [idx1, idx2]:
+            outlier_thresh = np.nanpercentile(idx, outlier_percentile)
+            min_val = np.nanmin(idx)
+            idx = np.where(idx > outlier_thresh, min_val, idx)
+    
+    # Sostituisci gli outliers con il valore minimo usando np.where
+    idx2 = np.where(idx2 < threshold, np.nanmin(idx2), idx2)
+    
+    # Calcola differenza
+    difference = idx1 - idx2
+
+    return difference

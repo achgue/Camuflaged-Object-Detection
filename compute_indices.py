@@ -1,5 +1,6 @@
 import spyndex             # libreria per il calcolo degli indici spettrali
 import util
+import numpy as np
 
 aligned_capture, cap = util.get_aligned_images("./im")  # Percorso delle immagini
 rgb = util.get_rgb_from_aligned(aligned_capture, img_type="reflectance", rgb_band_indices=[2, 1, 0])
@@ -96,12 +97,6 @@ def compute_iron_oxide():
         print(f"[!] Errore con Iron Oxide Index: {e}")
 
     return iron_oxide_ratio	
-    
-compute_ferric_index()  # Calcola e visualizza l'indice ferrico
-
-compute_wv_II()  # Calcola e visualizza l'indice degli ossidi di ferro
-
-compute_iron_oxide()  # Calcola e visualizza l'indice degli ossidi di ferro
 
 # Calcolo di tre indici vegetazionali con Spyndex
 indices = spyndex.computeIndex(
@@ -118,6 +113,68 @@ indices = spyndex.computeIndex(
         "slb": 0.0,                   # parametri per il TSAVI
     }
 )
+
+# Compute NHFD - SAVI difference
+def compute_nhfd_savi_difference():
+    # Calculate SAVI and NHFD indices
+    savi_nhfd_indices = spyndex.computeIndex(
+        index=["NHFD", "SAVI", "PISI"],
+        params={
+            "N": bands_da["NIR"],         # banda NIR
+            "R": bands_da["Red"],         # banda rossa
+            "RE1": bands_da["Red Edge"],  # banda rossa
+            "G": bands_da["Green"],       # banda verde
+            "B": bands_da["Blue"],        # banda blu
+            "A": bands_da["Blue-444"],
+            "L": 0.5,                     # parametro per il SAVI
+            "sla": 0.5,
+            "slb": 0.0,                   # parametri per il TSAVI
+        }
+    )
+    
+    # Extract individual indices
+    nhfd_index = savi_nhfd_indices.sel(index="NHFD")
+    savi_index = savi_nhfd_indices.sel(index="SAVI")
+    pisi_index = savi_nhfd_indices.sel(index="PISI")
+
+    # Compute difference: NHFD - SAVI
+    nhfd_index = util.normalize_index(nhfd_index)
+    savi_index = util.normalize_index(savi_index)
+    difference = util.compute_index_difference(nhfd_index, savi_index)
+    # pisi_index = util.normalize_index(pisi_index)
+    # difference = util.normalize_index(difference)
+    #difference = util.compute_index_difference(difference, pisi_index)
+    
+    # Plot the difference
+    try:
+        mask_path = "NHFD_minus_SAVI.png"
+        overlay_path = "overlay_NHFD_minus_SAVI.png"
+        title = "NHFD - SAVI Difference overlay su RGB"
+        
+        util.plot_index_overlay(
+            difference,
+            rgb,
+            out_mask_path=mask_path,
+            out_overlay_path=overlay_path,
+            title=title,
+            threshold=0.6,
+            cmap="jet"
+        )
+        print(f"[✓] NHFD - SAVI difference processato correttamente.")
+        
+    except Exception as e:
+        print(f"[!] Errore con NHFD - SAVI difference: {e}")
+    
+    return difference
+
+# Call the function
+compute_nhfd_savi_difference()
+
+compute_ferric_index()  # Calcola e visualizza l'indice ferrico
+
+compute_wv_II()  # Calcola e visualizza l'indice degli ossidi di ferro
+
+compute_iron_oxide()  # Calcola e visualizza l'indice degli ossidi di ferro
 
 indici_da_visualizzare = ["TSAVI", "SAVI", "MCARI", "NDVI", "GEMI", "BITM", "BIXS", "RI4XS", "NHFD", "PISI", "VgNIRBI"]
 
@@ -147,3 +204,4 @@ for indice_nome in indici_da_visualizzare:
     
     except Exception as e:
         print(f"[!] Errore con indice {indice_nome}: {e}")
+
