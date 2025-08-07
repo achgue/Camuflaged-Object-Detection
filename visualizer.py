@@ -3,7 +3,7 @@ import rasterio
 import matplotlib.pyplot as plt
 
 # === Load the image ===
-tif_path = "im/IMG_0422_6.tif"
+tif_path = "im/IMG_0422_4.tif"
 
 with rasterio.open(tif_path) as src:
     band = src.read(1)  # First band

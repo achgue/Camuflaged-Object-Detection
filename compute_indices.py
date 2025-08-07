@@ -100,7 +100,7 @@ def compute_iron_oxide():
 
 # Calcolo di tre indici vegetazionali con Spyndex
 indices = spyndex.computeIndex(
-    index=["TSAVI", "SAVI", "MCARI", "NDVI", "GEMI", "BITM", "BIXS", "RI4XS", "NHFD", "PISI", "VgNIRBI"],  # indici da calcolare
+    index=["TSAVI", "SAVI", "MCARI", "NDVI", "BITM", "BIXS", "NHFD", "PISI"],  # indici da calcolare
     params={
         "N": bands_da["NIR"],         # banda NIR
         "R": bands_da["Red"],         # banda rossa
@@ -176,7 +176,7 @@ compute_wv_II()  # Calcola e visualizza l'indice degli ossidi di ferro
 
 compute_iron_oxide()  # Calcola e visualizza l'indice degli ossidi di ferro
 
-indici_da_visualizzare = ["TSAVI", "SAVI", "MCARI", "NDVI", "GEMI", "BITM", "BIXS", "RI4XS", "NHFD", "PISI", "VgNIRBI"]
+indici_da_visualizzare = ["TSAVI", "SAVI", "MCARI", "NDVI", "BITM", "BIXS", "NHFD", "PISI"]
 
 for indice_nome in indici_da_visualizzare:
     try:
